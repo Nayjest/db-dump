@@ -1,7 +1,7 @@
 Database Dump Tool for Laravel
 =======
 
-# Usage
+#### Usage
 
 * Create dump:
 
