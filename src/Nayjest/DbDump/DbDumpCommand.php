@@ -47,7 +47,6 @@ class DbDumpCommand extends Command {
         $db = $this->option('db');
         $env = App::environment();
         $tags = $this->getTags();
-        $sc = $this->option('scenario');
         $tag_part = '';
         if ($tags) {
             foreach($tags as $tag) {
@@ -61,7 +60,8 @@ class DbDumpCommand extends Command {
         $this->info("\tDB name:\t$db");
         $this->info("\tDB user:\t$user");
         $this->info("\tEnv:\t$env");
-        if ($sc) {
+        if ($sc = $this->option('scenario')) {
+            $scenario = new Scenario($sc);
             $this->info("\tScenario:\t$sc");
             $this->info("\tTables to dump:\t" . join(', ', $scenario->getTables()));
         }
@@ -152,11 +152,11 @@ class DbDumpCommand extends Command {
         return trim($lines[$id-1]);
     }
 
-//	/**
-//	 * Get the console command arguments.
-//	 *
-//	 * @return array
-//	 */
+	/**
+	 * Get the console command arguments.
+	 *
+	 * @return array
+	 */
 	protected function getArguments()
 	{
 		return [
@@ -174,7 +174,7 @@ class DbDumpCommand extends Command {
 		return [
 			['db', null, InputOption::VALUE_OPTIONAL, 'Target DB name.', DB::connection(DB::getDefaultConnection())->getDatabaseName()],
             ['user', 'u', InputOption::VALUE_OPTIONAL, 'Target DB user.', DB::connection(DB::getDefaultConnection())->getConfig('username')],
-            ['path', 'p', InputOption::VALUE_OPTIONAL, 'Path to dumps.', '~'],
+            ['path', 'p', InputOption::VALUE_OPTIONAL, 'Path to dumps.', Config::get('db-dump::path')],
             ['tags', 't', InputOption::VALUE_OPTIONAL, 'Specify dump tags (comma-separated).', null],
             ['scenario', 's', InputOption::VALUE_OPTIONAL, 'Scenario (scenarios must be specified in package configuration).', null],
         ];

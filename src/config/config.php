@@ -7,5 +7,6 @@ return [
                 'invites'
             ]
         ]
-    ]
+    ],
+    'path' => '~',
 ];
