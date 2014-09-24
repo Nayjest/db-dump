@@ -1,7 +1,30 @@
 Database Dump Tool for Laravel
 =======
 
-#### Usage
+
+## Installation
+
+#### Installation with composer
+
+* Step 1: Add git url to composer.json file in your project:
+```
+"repositories": [
+    {
+        "url": "git@github.com:Nayjest/db-dump.git",
+        "type": "git"
+    }
+],
+```
+* Step 2: Add dependency to "require" section
+```
+"require": {
+    "nayjest/db-dump": "~1"
+},
+```
+* Step 3: run "composer update" command
+* 
+
+## Usage
 
 Create dump:
 
