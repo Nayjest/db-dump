@@ -53,6 +53,16 @@ class DbDumpCommand extends Command {
         }
 	}
 
+    protected function generateDumpName($db, $env, $tags = [])
+    {
+        $tag_part = '';
+        foreach($tags as $tag) {
+            $tag_part.= "_$tag";
+        }
+        $file_name = "db_{$db}_{$env}_" . date('Ymd.His') . $tag_part . '.sql.gz';
+        return $file_name;
+    }
+
     protected function make()
     {
 
@@ -66,9 +76,10 @@ class DbDumpCommand extends Command {
                 $tag_part.= "_$tag";
             }
         }
-        $file_name = "db_{$db}_{$env}_" . date('Ymd.His') . $tag_part . '.sql.gz';
+        $file_name = $this->generateDumpName($db, $env, $this->getTags());
         $path = $this->option('path');
         $user = $this->option('user');
+        $password = $this->option('password');
         $this->info("Details:");
         $this->info("\tDB name:\t$db");
         $this->info("\tDB user:\t$user");
@@ -89,7 +100,7 @@ class DbDumpCommand extends Command {
             } else {
                 $tables = '';
             }
-            $command = "mysqldump -u$user -p $db $tables | gzip > $path/$file_name";
+            $command = "mysqldump --user=\"$user\" --password=\"$password\" $db $tables | gzip > $path/$file_name";
             $this->info("command: $command");
             system($command);
             $this->info("Done. See $path/$file_name");
@@ -125,8 +136,9 @@ class DbDumpCommand extends Command {
         $path = $this->option('path');
         $db = $this->option('db');
         $user = $this->option('user');
+        $password = $this->option('password');
         if ($this->confirm("Apply $path/$file to $db?")) {
-            $command = "gunzip -c $path/$file | mysql -u$user -p $db";
+            $command = "gunzip -c $path/$file | mysql --user=\"$user\" --password=\"$password\" $db";
             $this->info("command: $command");
             system($command);
             $this->info("Done");
@@ -197,7 +209,8 @@ class DbDumpCommand extends Command {
 	{
 		return [
 			['db', null, InputOption::VALUE_OPTIONAL, 'Target DB name.', DB::connection(DB::getDefaultConnection())->getDatabaseName()],
-            ['user', 'u', InputOption::VALUE_OPTIONAL, 'Target DB user.', DB::connection(DB::getDefaultConnection())->getConfig('username')],
+            ['user', null, InputOption::VALUE_OPTIONAL, 'Target DB user.', DB::connection(DB::getDefaultConnection())->getConfig('username')],
+            ['password', null, InputOption::VALUE_OPTIONAL, 'DB password.', DB::connection(DB::getDefaultConnection())->getConfig('password')],
             ['path', 'p', InputOption::VALUE_OPTIONAL, 'Path to dumps.', Config::get('db-dump::path')],
             ['tags', 't', InputOption::VALUE_OPTIONAL, 'Specify dump tags (comma-separated).', null],
             ['scenario', 's', InputOption::VALUE_OPTIONAL, 'Scenario (scenarios must be specified in package configuration).', null],
