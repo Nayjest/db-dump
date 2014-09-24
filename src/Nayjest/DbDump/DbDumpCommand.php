@@ -165,8 +165,13 @@ class DbDumpCommand extends Command {
     {
         $this->info("Creating DB $db if not exists...");
         $mysql = $this->getMySqlCommand($user, $password);
-        system("echo CREATE DATABASE IF NOT EXISTS $db; | $mysql");
-        $this->info("Done");
+        $sql = "CREATE DATABASE IF NOT EXISTS $db;";
+        if (PHP_OS==='WINNT') {
+            system("echo $sql | $mysql");
+        } else {
+            system("echo \"$sql\" | $mysql");
+        }
+        $this->info("Done.");
 
     }
 
