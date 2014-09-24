@@ -69,17 +69,21 @@ class DbDumpCommand extends Command {
         );
         $ok_text = "Done. See ";
         if (strpos($last_line, $ok_text) !== false) {
-
-            $file_path = trim(str_replace($ok_text, '', $last_line));
-            $parts = explode('/', $file_path);
-            $file_name = array_pop($parts);
-            $this->info("Downloading $file_name");
-            $local_path = $this->option('path') . DIRECTORY_SEPARATOR . $file_name;
-            SSH::get($file_path, $local_path);
-            $this->info($ok_text . $local_path);
+            $remote_path = trim(str_replace($ok_text, '', $last_line));
+            $this->downloadDump($remote, $remote_path);
         } else {
             $this->error("Can't download DB dump.");
         }
+    }
+
+    protected function downloadDump($remote, $remotel_path)
+    {
+        $parts = explode('/', $remotel_path);
+        $file_name = array_pop($parts);
+        $this->info("Downloading $file_name");
+        $local_path = $this->option('path') . DIRECTORY_SEPARATOR . $file_name;
+        SSH::into($remote)->get($remotel_path, $local_path);
+        $this->info("Done. See " . $local_path);
     }
 
     protected function generateDumpName($db, $env, $tags = [])
