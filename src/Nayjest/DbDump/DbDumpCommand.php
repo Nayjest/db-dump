@@ -47,8 +47,21 @@ class DbDumpCommand extends Command {
         }
 	}
 
+    public function confirm($question, $default = false)
+    {
+        if ($this->option('no-input')) {
+            return true;
+        }
+        return parent::confirm($question, $default);
+    }
+
     protected function makeRemote($remote)
     {
+
+        if (!$this->confirm("\tDump database on remote '$remote' server'?")) {
+            return;
+        }
+
         $last_line = '';
 
         $options = '';
@@ -59,7 +72,8 @@ class DbDumpCommand extends Command {
             $options .= "-t " . $this->option('tags');
         }
         SSH::into($remote)->run(
-            [   'cd ' . Config::get("remote.connections.$remote.root"),
+            [
+                $this->getCdRootCommand($remote),
                 "php artisan db:dump make --no-input 1 $options"
             ],
             function($line) use (&$last_line) {
@@ -98,8 +112,6 @@ class DbDumpCommand extends Command {
 
     protected function make()
     {
-
-        $no_input = $this->option('no-input');
         $db = $this->option('db');
         $env = App::environment();
         $tags = $this->getTags();
@@ -126,7 +138,7 @@ class DbDumpCommand extends Command {
         $this->info("\tTags:\t" . ($tags?join(', ', $tags):''));
         $this->info("\tFile name:\t$path/$file_name");
 
-        if ($no_input or $this->confirm("\tDump database?", false)) {
+        if ($this->confirm("\tDump database?")) {
             $this->info("Making dump...");
             if ($sc) {
                 $tables = join(' ', $tables = $scenario->getTables());
@@ -141,6 +153,26 @@ class DbDumpCommand extends Command {
             $this->comment('Command Cancelled!');
             return false;
         };
+    }
+
+    protected function getMySqlCommand($user, $password = null, $db = null)
+    {
+        return "mysql --user=\"$user\" --password=\"$password\" $db";
+    }
+
+
+    protected function createDB($db, $user, $password)
+    {
+        $this->info("Creating DB $db if not exists...");
+        $mysql = $this->getMySqlCommand($user, $password);
+        system("echo CREATE DATABASE IF NOT EXISTS $db; | $mysql");
+        $this->info("Done");
+
+    }
+
+    protected function getCdRootCommand($remote)
+    {
+        return 'cd ' . Config::get("remote.connections.$remote.root");
     }
 
     protected function getTags()
@@ -160,18 +192,43 @@ class DbDumpCommand extends Command {
 
     protected function apply()
     {
-        $this->info("Select dump:");
-        $file = $this->choose();
-        if (!$file) {
-            $this->comment('Dump file not selected, ending program');
-            return false;
-        }
         $path = $this->option('path');
         $db = $this->option('db');
         $user = $this->option('user');
         $password = $this->option('password');
+
+        $this->info("Select dump:");
+        $file = $this->chooseDump();
+        if (!$file) {
+            $this->comment('Dump file not selected, ending program');
+            return false;
+        }
+        if ($remote = $this->option('remote')) {
+            $remote_path = $this->option('remote-path');
+            $this->uploadDump(
+                $remote,
+                "$path/$file",
+                "$remote_path/$file"
+            );
+            $command = "php artisan db:dump apply --file=\"$file\" --path=\"$remote_path\" --no-input --create-db=1";
+            SSH::into($remote)->run(
+                [
+                    $this->getCdRootCommand($remote),
+                    $command
+                  ], function($line) {
+                    echo '[ remote ] ',$line;
+                }
+            );
+        }
+
         if ($this->confirm("Apply $path/$file to $db?")) {
-            $command = "gunzip -c $path/$file | mysql --user=\"$user\" --password=\"$password\" $db";
+
+            if ($this->option('create-db')) {
+                $this->createDB($db, $user, $password);
+            }
+
+            $mysql = $this->getMySqlCommand($user, $password, $db);
+            $command = "gunzip -c $path/$file | $mysql";
             $this->info("command: $command");
             system($command);
             $this->info("Done");
@@ -179,6 +236,11 @@ class DbDumpCommand extends Command {
             $this->comment('Command Cancelled!');
             return false;
         };
+    }
+
+    protected function uploadDump($remote, $local_path, $remote_path)
+    {
+        SSH::into($remote)->put($local_path, $remote_path);
     }
 
     protected function getDumpsListCommand($path, $tags = [])
@@ -200,9 +262,11 @@ class DbDumpCommand extends Command {
         return $lines;
     }
 
-    protected function choose()
+    protected function chooseDump()
     {
-
+        if ($this->option('file')) {
+            return $this->option('file');
+        }
         $dumps = $this->listDumps($this->option('path'), $this->getTags());
         foreach ($dumps as $i => $line) {
             $id = $i+1;
@@ -211,14 +275,14 @@ class DbDumpCommand extends Command {
             }
         }
         $id = $this->ask("Enter dump ID: ");
-        if (!is_numeric($id) or empty($lines[$id-1])) {
+        if (!is_numeric($id) or empty($dumps[$id-1])) {
             if ($this->confirm("Wrong dump ID. Try again?")) {
-                return $this->choose();
+                return $this->chooseDump();
             } else {
                 return null;
             }
         }
-        return trim($lines[$id-1]);
+        return trim($dumps[$id-1]);
     }
 
 	/**
@@ -229,7 +293,7 @@ class DbDumpCommand extends Command {
 	protected function getArguments()
 	{
 		return [
-			['cmd', InputArgument::REQUIRED, 'Command (apply)'],
+			['cmd', InputArgument::REQUIRED, 'Command (make|apply)'],
 		];
 	}
 
@@ -245,10 +309,13 @@ class DbDumpCommand extends Command {
             ['user', null, InputOption::VALUE_OPTIONAL, 'Target DB user.', DB::connection(DB::getDefaultConnection())->getConfig('username')],
             ['password', null, InputOption::VALUE_OPTIONAL, 'DB password.', DB::connection(DB::getDefaultConnection())->getConfig('password')],
             ['path', 'p', InputOption::VALUE_OPTIONAL, 'Path to dumps.', Config::get('db-dump::path')],
+            ['remote-path', null, InputOption::VALUE_OPTIONAL, 'Remote path', Config::get('db-dump::path')],
             ['tags', 't', InputOption::VALUE_OPTIONAL, 'Specify dump tags (comma-separated).', null],
             ['scenario', 's', InputOption::VALUE_OPTIONAL, 'Scenario (scenarios must be specified in package configuration).', null],
             ['remote', 'r', InputOption::VALUE_OPTIONAL, 'Execute command on remote host.', null],
             ['no-input', 'y', InputOption::VALUE_OPTIONAL, 'Do not ask questions.', null],
+            ['file', 'f', InputOption::VALUE_OPTIONAL, 'Dump file to apply.', null],
+            ['create-db', 'c', InputOption::VALUE_OPTIONAL, 'Create DB before applying dump.', null],
         ];
 	}
 
