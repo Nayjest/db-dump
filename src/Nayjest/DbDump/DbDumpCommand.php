@@ -37,7 +37,7 @@ class DbDumpCommand extends Command {
             if ($remote = $this->option('remote')) {
                 SSH::into($remote)->run(
                     [   'cd ' . Config::get("remote.connections.$remote.root"),
-                        'php artisan db:dump make -y'
+                        'php artisan db:dump make --no-input 1'
                     ],
                     function($line) {
                         echo $line, PHP_EOL;
