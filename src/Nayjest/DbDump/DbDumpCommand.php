@@ -35,23 +35,52 @@ class DbDumpCommand extends Command {
         $command = $this->argument('cmd');
         if ($command === 'make') {
             if ($remote = $this->option('remote')) {
-                SSH::into($remote)->run(
-                    [   'cd ' . Config::get("remote.connections.$remote.root"),
-                        'php artisan db:dump make --no-input 1'
-                    ],
-                    function($line) {
-                        echo $line, PHP_EOL;
-                    }
-                );
-                return;
+                $this->makeRemote($remote);
+            } else {
+                $this->make();
             }
-            $this->make();
+
         } elseif ($command === 'apply') {
             $this->apply();
         } else {
             $this->info("Unsupported command. use 'dump' or 'apply'");
         }
 	}
+
+    protected function makeRemote($remote)
+    {
+        $last_line = '';
+
+        $options = '';
+        if ($this->option('scenario')) {
+            $options .= "-s " . $this->option('scenario');
+        }
+        if ($this->option('tags')) {
+            $options .= "-t " . $this->option('tags');
+        }
+        SSH::into($remote)->run(
+            [   'cd ' . Config::get("remote.connections.$remote.root"),
+                "php artisan db:dump make --no-input 1 $options"
+            ],
+            function($line) use (&$last_line) {
+                $last_line = $line;
+                echo '[ remote ] ',$line;
+            }
+        );
+        $ok_text = "Done. See ";
+        if (strpos($last_line, $ok_text) !== false) {
+
+            $file_path = trim(str_replace($ok_text, '', $last_line));
+            $parts = explode('/', $file_path);
+            $file_name = array_pop($parts);
+            $this->info("Downloading $file_name");
+            $local_path = $this->option('path') . DIRECTORY_SEPARATOR . $file_name;
+            SSH::get($file_path, $local_path);
+            $this->info($ok_text . $local_path);
+        } else {
+            $this->error("Can't download DB dump.");
+        }
+    }
 
     protected function generateDumpName($db, $env, $tags = [])
     {
