@@ -5,6 +5,7 @@ use App;
 use DB;
 use Illuminate\Console\Command;
 use Config;
+use SSH;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
@@ -33,6 +34,17 @@ class DbDumpCommand extends Command {
 	{
         $command = $this->argument('cmd');
         if ($command === 'make') {
+            if ($remote = $this->option('remote')) {
+                SSH::into($remote)->run(
+                    [   'cd ' . Config::get("remote.connections.$remote.root"),
+                        'php artisan db:dump make -y'
+                    ],
+                    function($line) {
+                        echo $line, PHP_EOL;
+                    }
+                );
+                return;
+            }
             $this->make();
         } elseif ($command === 'apply') {
             $this->apply();
@@ -44,6 +56,7 @@ class DbDumpCommand extends Command {
     protected function make()
     {
 
+        $no_input = $this->input->hasOption('no-input');
         $db = $this->option('db');
         $env = App::environment();
         $tags = $this->getTags();
@@ -69,7 +82,7 @@ class DbDumpCommand extends Command {
         $this->info("\tTags:\t" . ($tags?join(', ', $tags):''));
         $this->info("\tFile name:\t$path/$file_name");
 
-        if ($this->confirm("\tDump database?", false)) {
+        if ($no_input or $this->confirm("\tDump database?", false)) {
             $this->info("Making dump...");
             if ($sc) {
                 $tables = join(' ', $tables = $scenario->getTables());
@@ -91,6 +104,8 @@ class DbDumpCommand extends Command {
         $tags = $this->option('tags');
         if ($tags) {
             $tags = explode(',', $tags);
+        } else {
+            $tags = [];
         }
         $sc = $this->option('scenario');
         if ($sc) {
@@ -121,21 +136,30 @@ class DbDumpCommand extends Command {
         };
     }
 
-    protected function choose()
+    protected function getDumpsListCommand($path, $tags = [])
     {
-        $path = $this->option('path');
-        $cmd = "ls $path | grep \".sql.gz\"";
-        $tags = $this->getTags();
+        $command = "ls $path | grep \".sql.gz\"";
         if ($tags) {
             foreach ($tags as $tag) {
-                $cmd .= "| grep \"$tag\"";
+                $command .= "| grep \"$tag\"";
             }
         }
+        return $command;
+    }
 
-        $output = shell_exec($cmd);
+    protected function listDumps($path, $tags = [])
+    {
+        $command = $this->getDumpsListCommand($path, $tags);
+        $output = shell_exec($command);
         $lines = explode("\n", $output);
+        return $lines;
+    }
 
-        foreach ($lines as $i => $line) {
+    protected function choose()
+    {
+
+        $dumps = $this->listDumps($this->option('path'), $this->getTags());
+        foreach ($dumps as $i => $line) {
             $id = $i+1;
             if (trim($line)) {
                 $this->info("\t$id:\t$line");
@@ -177,6 +201,8 @@ class DbDumpCommand extends Command {
             ['path', 'p', InputOption::VALUE_OPTIONAL, 'Path to dumps.', Config::get('db-dump::path')],
             ['tags', 't', InputOption::VALUE_OPTIONAL, 'Specify dump tags (comma-separated).', null],
             ['scenario', 's', InputOption::VALUE_OPTIONAL, 'Scenario (scenarios must be specified in package configuration).', null],
+            ['remote', 'r', InputOption::VALUE_OPTIONAL, 'Execute command on remote host.', null],
+            ['no-input', 'y', InputOption::VALUE_OPTIONAL, 'Do not ask questions.', null],
         ];
 	}
 
