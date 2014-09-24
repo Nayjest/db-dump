@@ -197,7 +197,6 @@ class DbDumpCommand extends Command {
         $user = $this->option('user');
         $password = $this->option('password');
 
-        $this->info("Select dump:");
         $file = $this->chooseDump();
         if (!$file) {
             $this->comment('Dump file not selected, ending program');
@@ -210,7 +209,7 @@ class DbDumpCommand extends Command {
                 "$path/$file",
                 "$remote_path/$file"
             );
-            $command = "php artisan db:dump apply --file=\"$file\" --path=\"$remote_path\" --no-input --create-db=1";
+            $command = "php artisan db:dump apply --file=\"$file\" --path=\"$remote_path\" --no-input=1 --create-db=1";
             SSH::into($remote)->run(
                 [
                     $this->getCdRootCommand($remote),
@@ -219,6 +218,8 @@ class DbDumpCommand extends Command {
                     echo '[ remote ] ',$line;
                 }
             );
+            echo "Done.";
+            return;
         }
 
         if ($this->confirm("Apply $path/$file to $db?")) {
@@ -267,6 +268,9 @@ class DbDumpCommand extends Command {
         if ($this->option('file')) {
             return $this->option('file');
         }
+
+        $this->info("Select dump:");
+
         $dumps = $this->listDumps($this->option('path'), $this->getTags());
         foreach ($dumps as $i => $line) {
             $id = $i+1;
