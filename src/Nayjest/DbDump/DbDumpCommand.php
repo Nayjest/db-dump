@@ -214,7 +214,8 @@ class DbDumpCommand extends Command {
                 "$path/$file",
                 "$remote_path/$file"
             );
-            $command = "php artisan db:dump apply --file=\"$file\" --path=\"$remote_path\" --no-input=1 --create-db=1";
+            $db = $this->option('db');
+            $command = "php artisan db:dump apply --file=\"$file\" --path=\"$remote_path\" --no-input=\"1\" --create-db=\"1\" --db=\"$db\"";
             SSH::into($remote)->run(
                 [
                     $this->getCdRootCommand($remote),
