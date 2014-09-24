@@ -56,7 +56,7 @@ class DbDumpCommand extends Command {
     protected function make()
     {
 
-        $no_input = $this->input->hasOption('no-input');
+        $no_input = $this->option('no-input');
         $db = $this->option('db');
         $env = App::environment();
         $tags = $this->getTags();
