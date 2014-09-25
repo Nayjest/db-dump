@@ -81,12 +81,25 @@ class DbDumpCommand extends Command {
                 echo '[ remote ] ',$line;
             }
         );
-        $ok_text = "Done. See ";
-        if (strpos($last_line, $ok_text) !== false) {
-            $remote_path = trim(str_replace($ok_text, '', $last_line));
+
+
+        if ($remote_path = $this->extractDataFromOutput($last_line)) {
             $this->downloadDump($remote, $remote_path);
         } else {
             $this->error("Can't download DB dump.");
+        }
+    }
+
+    /**
+     * @param $str
+     * @return string|null
+     */
+    protected function extractDataFromOutput($str)
+    {
+        $matches = [];
+        preg_match('/\[ (.*) \]/', $str, $matches);
+        if (!empty($matches[1])) {
+            return trim($matches[1]);
         }
     }
 
