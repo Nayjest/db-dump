@@ -90,13 +90,13 @@ class DbDumpCommand extends Command {
         }
     }
 
-    protected function downloadDump($remote, $remotel_path)
+    protected function downloadDump($remote, $remote_path)
     {
-        $parts = explode('/', $remotel_path);
+        $parts = explode('/', $remote_path);
         $file_name = array_pop($parts);
-        $this->info("Downloading $file_name");
+        $this->info("Downloading $remote_path");
         $local_path = $this->option('path') . DIRECTORY_SEPARATOR . $file_name;
-        SSH::into($remote)->get($remotel_path, $local_path);
+        SSH::into($remote)->get($remote_path, $local_path);
         $this->info("Done. See " . $local_path);
     }
 
@@ -151,7 +151,7 @@ class DbDumpCommand extends Command {
             $command = "mysqldump --user=\"$user\" --password=\"$password\" $db $tables | gzip > $path/$file_name";
             $this->info("command: $command");
             system($command);
-            $this->info("Done. See $path/$file_name");
+            $this->info("Done. See [ $path/$file_name ]");
         } else {
             $this->comment('Command Cancelled!');
         };
