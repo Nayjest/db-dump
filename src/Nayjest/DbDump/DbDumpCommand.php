@@ -58,7 +58,7 @@ class DbDumpCommand extends Command {
     protected function makeRemote($remote)
     {
 
-        if (!$this->confirm("\tDump database on remote '$remote' server'?")) {
+        if (!$this->confirm("\tDump database on remote '$remote' server?")) {
             return;
         }
 
@@ -110,6 +110,9 @@ class DbDumpCommand extends Command {
         return $file_name;
     }
 
+    /**
+     * Makes database dump
+     */
     protected function make()
     {
         $db = $this->option('db');
@@ -151,7 +154,6 @@ class DbDumpCommand extends Command {
             $this->info("Done. See $path/$file_name");
         } else {
             $this->comment('Command Cancelled!');
-            return false;
         };
     }
 
@@ -225,7 +227,7 @@ class DbDumpCommand extends Command {
                 }
             );
             echo "Done.";
-            return;
+            return true;
         }
 
         if ($this->confirm("Apply $path/$file to $db?")) {
@@ -243,6 +245,7 @@ class DbDumpCommand extends Command {
             $this->comment('Command Cancelled!');
             return false;
         };
+        return true;
     }
 
     protected function uploadDump($remote, $local_path, $remote_path)
