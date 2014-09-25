@@ -69,12 +69,14 @@ class DbDumpCommand extends Command {
             $options .= "-s " . $this->option('scenario');
         }
         if ($this->option('tags')) {
-            $options .= "-t " . $this->option('tags');
+            $options .= " --tags " . $this->option('tags');
         }
+        $command = "php artisan db:dump make --no-input 1 $options";
+        $this->info("Executing on remote server: $command");
         SSH::into($remote)->run(
             [
                 $this->getCdRootCommand($remote),
-                "php artisan db:dump make --no-input 1 $options"
+                $command
             ],
             function($line) use (&$last_line) {
                 $last_line = $line;
