@@ -47,6 +47,11 @@ class DbDumpCommand extends Command {
         }
 	}
 
+    protected function beep()
+    {
+        echo chr(7),chr(7);
+    }
+
     public function confirm($question, $default = false)
     {
         if ($this->option('no-input')) {
@@ -112,6 +117,7 @@ class DbDumpCommand extends Command {
         $this->info("Downloading $remote_path");
         $local_path = $this->option('path') . DIRECTORY_SEPARATOR . $file_name;
         SSH::into($remote)->get($remote_path, $local_path);
+        $this->beep();
         $this->info("Done. See " . $local_path);
     }
 
@@ -166,6 +172,7 @@ class DbDumpCommand extends Command {
             $command = "mysqldump --user=\"$user\" --password=\"$password\" $db $tables | gzip > $path/$file_name";
             $this->info("command: $command");
             system($command);
+            $this->beep();
             $this->info("Done. See [ $path/$file_name ]");
         } else {
             $this->comment('Command Cancelled!');
@@ -241,6 +248,7 @@ class DbDumpCommand extends Command {
                     echo '[ remote ] ',$line;
                 }
             );
+            $this->beep();
             echo "Done.";
             return true;
         }
