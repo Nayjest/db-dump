@@ -231,6 +231,7 @@ class DbDumpCommand extends Command {
             $this->comment('Dump file not selected, ending program');
             return false;
         }
+        # remote apply
         if ($remote = $this->option('remote')) {
             $remote_path = $this->option('remote-path');
             $this->uploadDump(
@@ -273,7 +274,9 @@ class DbDumpCommand extends Command {
 
     protected function uploadDump($remote, $local_path, $remote_path)
     {
+        $this->info("Uploading dump '$local_path' into '$remote_path' at '$remote'");
         SSH::into($remote)->put($local_path, $remote_path);
+        $this->info("Done uploading.");
     }
 
     protected function getDumpsListCommand($path, $tags = [])
