@@ -9,29 +9,30 @@ use SSH;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
-class DbDumpCommand extends Command {
+class DbDumpCommand extends Command
+{
 
-	/**
-	 * The console command name.
-	 *
-	 * @var string
-	 */
-	protected $name = 'db:dump';
+    /**
+     * The console command name.
+     *
+     * @var string
+     */
+    protected $name = 'db:dump';
 
-	/**
-	 * The console command description.
-	 *
-	 * @var string
-	 */
-	protected $description = 'Command description.';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Command description.';
 
-	/**
-	 * Execute the console command.
-	 *
-	 * @return mixed
-	 */
-	public function fire()
-	{
+    /**
+     * Execute the console command.
+     *
+     * @return mixed
+     */
+    public function fire()
+    {
         $command = $this->argument('cmd');
         if ($command === 'make') {
             if ($remote = $this->option('remote')) {
@@ -45,11 +46,11 @@ class DbDumpCommand extends Command {
         } else {
             $this->info("Unsupported command. use 'dump' or 'apply'");
         }
-	}
+    }
 
     protected function beep()
     {
-        echo chr(7),chr(7);
+        echo chr(7), chr(7);
     }
 
     public function confirm($question, $default = false)
@@ -83,9 +84,9 @@ class DbDumpCommand extends Command {
                 $this->getCdRootCommand($remote),
                 $command
             ],
-            function($line) use (&$last_line) {
+            function ($line) use (&$last_line) {
                 $last_line = $line;
-                echo '[ remote ] ',$line;
+                echo '[ remote ] ', $line;
             }
         );
 
@@ -124,8 +125,8 @@ class DbDumpCommand extends Command {
     protected function generateDumpName($db, $env, $tags = [])
     {
         $tag_part = '';
-        foreach($tags as $tag) {
-            $tag_part.= "_$tag";
+        foreach ($tags as $tag) {
+            $tag_part .= "_$tag";
         }
         $file_name = "db_{$db}_{$env}_" . date('Ymd.His') . $tag_part . '.sql.gz';
         return $file_name;
@@ -141,8 +142,8 @@ class DbDumpCommand extends Command {
         $tags = $this->getTags();
         $tag_part = '';
         if ($tags) {
-            foreach($tags as $tag) {
-                $tag_part.= "_$tag";
+            foreach ($tags as $tag) {
+                $tag_part .= "_$tag";
             }
         }
         $file_name = $this->generateDumpName($db, $env, $this->getTags());
@@ -159,7 +160,7 @@ class DbDumpCommand extends Command {
             $this->info("\tTables to dump:\t" . join(', ', $scenario->getTables()));
         }
         $this->info("\tDate:\t" . date('Y-m-d H:i:s'));
-        $this->info("\tTags:\t" . ($tags?join(', ', $tags):''));
+        $this->info("\tTags:\t" . ($tags ? join(', ', $tags) : ''));
         $this->info("\tFile name:\t$path/$file_name");
 
         if ($this->confirm("\tDump database?")) {
@@ -190,7 +191,7 @@ class DbDumpCommand extends Command {
         $this->info("Creating DB $db if not exists...");
         $mysql = $this->getMySqlCommand($user, $password);
         $sql = "CREATE DATABASE IF NOT EXISTS $db;";
-        if (PHP_OS==='WINNT') {
+        if (PHP_OS === 'WINNT') {
             system("echo $sql | $mysql");
         } else {
             system("echo \"$sql\" | $mysql");
@@ -245,8 +246,8 @@ class DbDumpCommand extends Command {
                 [
                     $this->getCdRootCommand($remote),
                     $command
-                  ], function($line) {
-                    echo '[ remote ] ',$line;
+                ], function ($line) {
+                    echo '[ remote ] ', $line;
                 }
             );
             $this->beep();
@@ -274,7 +275,7 @@ class DbDumpCommand extends Command {
 
     protected function uploadDump($remote, $local_path, $remote_path)
     {
-        $this->info("Uploading dump '$local_path' into '$remote_path' at '$remote'");
+        $this->info("Uploading dump '$local_path' into '$remote_path' at '$remote'...");
         SSH::into($remote)->put($local_path, $remote_path);
         $this->info("Done uploading.");
     }
@@ -308,43 +309,43 @@ class DbDumpCommand extends Command {
 
         $dumps = $this->listDumps($this->option('path'), $this->getTags());
         foreach ($dumps as $i => $line) {
-            $id = $i+1;
+            $id = $i + 1;
             if (trim($line)) {
                 $this->info("\t$id:\t$line");
             }
         }
         $id = $this->ask("Enter dump ID: ");
-        if (!is_numeric($id) or empty($dumps[$id-1])) {
+        if (!is_numeric($id) or empty($dumps[$id - 1])) {
             if ($this->confirm("Wrong dump ID. Try again?")) {
                 return $this->chooseDump();
             } else {
                 return null;
             }
         }
-        return trim($dumps[$id-1]);
+        return trim($dumps[$id - 1]);
     }
 
-	/**
-	 * Get the console command arguments.
-	 *
-	 * @return array
-	 */
-	protected function getArguments()
-	{
-		return [
-			['cmd', InputArgument::REQUIRED, 'Command (make|apply)'],
-		];
-	}
+    /**
+     * Get the console command arguments.
+     *
+     * @return array
+     */
+    protected function getArguments()
+    {
+        return [
+            ['cmd', InputArgument::REQUIRED, 'Command (make|apply)'],
+        ];
+    }
 
-	/**
-	 * Get the console command options.
-	 *
-	 * @return array
-	 */
-	protected function getOptions()
-	{
-		return [
-			['db', null, InputOption::VALUE_OPTIONAL, 'Target DB name.', DB::connection(DB::getDefaultConnection())->getDatabaseName()],
+    /**
+     * Get the console command options.
+     *
+     * @return array
+     */
+    protected function getOptions()
+    {
+        return [
+            ['db', null, InputOption::VALUE_OPTIONAL, 'Target DB name.', DB::connection(DB::getDefaultConnection())->getDatabaseName()],
             ['user', null, InputOption::VALUE_OPTIONAL, 'Target DB user.', DB::connection(DB::getDefaultConnection())->getConfig('username')],
             ['password', null, InputOption::VALUE_OPTIONAL, 'DB password.', DB::connection(DB::getDefaultConnection())->getConfig('password')],
             ['path', 'p', InputOption::VALUE_OPTIONAL, 'Path to dumps.', Config::get('db-dump::path')],
@@ -356,6 +357,5 @@ class DbDumpCommand extends Command {
             ['file', 'f', InputOption::VALUE_OPTIONAL, 'Dump file to apply.', null],
             ['create-db', 'c', InputOption::VALUE_OPTIONAL, 'Create DB before applying dump.', null],
         ];
-	}
-
+    }
 }
