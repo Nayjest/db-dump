@@ -344,12 +344,13 @@ class DbDumpCommand extends Command
      */
     protected function getOptions()
     {
+        $connection = Config::get('database.default');
         return [
-            ['db', null, InputOption::VALUE_OPTIONAL, 'Target DB name.', DB::connection(DB::getDefaultConnection())->getDatabaseName()],
-            ['user', null, InputOption::VALUE_OPTIONAL, 'Target DB user.', DB::connection(DB::getDefaultConnection())->getConfig('username')],
-            ['password', null, InputOption::VALUE_OPTIONAL, 'DB password.', DB::connection(DB::getDefaultConnection())->getConfig('password')],
-            ['path', 'p', InputOption::VALUE_OPTIONAL, 'Path to dumps.', Config::get('db-dump::path')],
-            ['remote-path', null, InputOption::VALUE_OPTIONAL, 'Remote path', Config::get('db-dump::path')],
+            ['db', null, InputOption::VALUE_REQUIRED, 'Target DB name.', Config::get("database.connections.$connection.database")],
+            ['user', null, InputOption::VALUE_REQUIRED, 'Target DB user.', Config::get("database.connections.$connection.username")],
+            ['password', null, InputOption::VALUE_OPTIONAL, 'DB password.', Config::get("database.connections.$connection.password")],
+            ['path', 'p', InputOption::VALUE_REQUIRED, 'Path to dumps.', Config::get('db-dump::path')],
+            ['remote-path', null, InputOption::VALUE_REQUIRED, 'Remote path', Config::get('db-dump::path')],
             ['tags', 't', InputOption::VALUE_OPTIONAL, 'Specify dump tags (comma-separated).', null],
             ['scenario', 's', InputOption::VALUE_OPTIONAL, 'Scenario (scenarios must be specified in package configuration).', null],
             ['remote', 'r', InputOption::VALUE_OPTIONAL, 'Execute command on remote host.', null],
