@@ -2,9 +2,9 @@
 namespace Nayjest\DbDump;
 
 use App;
-use DB;
 use Illuminate\Console\Command;
 use Config;
+use Exception;
 use SSH;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
@@ -61,9 +61,24 @@ class DbDumpCommand extends Command
         return parent::confirm($question, $default);
     }
 
+    protected function checkRemote($remote)
+    {
+        if (Config::get("remote.connections.$remote") === null) {
+            $msg = "Connection '$remote' is not configured.\r\n\t";
+            $msg .= "Existing connections:\r\n\t\t";
+            $variants = join(
+                ",\r\n\t\t",
+                array_keys(Config::get('remote.connections', []))
+            );
+            $msg .= $variants;
+            $msg .= "\r\n\tSee remote.connections app configuration for details.\r\n";
+            throw new  Exception($msg);
+        }
+    }
+
     protected function makeRemote($remote)
     {
-
+        $this->checkRemote($remote);
         if (!$this->confirm("\tDump database on remote '$remote' server?")) {
             return;
         }
@@ -234,6 +249,7 @@ class DbDumpCommand extends Command
         }
         # remote apply
         if ($remote = $this->option('remote')) {
+            $this->checkRemote($remote);
             $remote_path = $this->option('remote-path');
             $this->uploadDump(
                 $remote,
