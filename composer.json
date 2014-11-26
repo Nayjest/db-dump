@@ -1,7 +1,7 @@
 {
     "name": "nayjest/db-dump",
-    "description": "",
-    "keywords": ["laravel", "db", "command-line"],
+    "description": "Database Dump Tool for Laravel",
+    "keywords": ["laravel", "db", "command-line", "mysql"],
     "authors": [
         {
             "name": "Vitalii [Nayjest] Stepanenko",
