@@ -1,6 +1,7 @@
 {
     "name": "nayjest/db-dump",
     "description": "",
+    "keywords": ["laravel", "db", "command-line"],
     "authors": [
         {
             "name": "Vitalii [Nayjest] Stepanenko",
